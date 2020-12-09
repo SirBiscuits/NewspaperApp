@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<br>
+<h1 class="text-center">News Articles</h1>
+
+{% for article in object_list reversed %} <!-- object_list is the queryset -->
+	<hr>
+	<h2>{{ article.title }}</h2>
+	<p><em>{{article.author.first_name}} ({{  article.author }}) | {{ article.created_date }} </em></p>
+	<p>{{ article.content }}</p>
+	<button>Like ({{ article.likes }})</button>
+	<button class="comment">Comment</button>
+	<br>
+	<div id="comment" style="display:none">
+		<br>
+		<h3>Leave a comment below:</h3>
+		<form id="commentForm" method="POST">
+			{% csrf_token %}
+    		<!-- {{ form.as_p }} -->
+			<input type="text" id="yourComment" name="yourComment" placeholder="Enter your comment here"><br>
+			<button type="submit">Submit Comment</button>
+		</form>
+	</div>
+	<br>
+	<hr>
+	<div id="newestComment"></div>
+{% endfor %}
+<div class="previousComments">
+	{% for comment in comments %}
+	<p>{{ comment.comment }}</p>
+	{% endfor %}
+</div>
+<!-- here i can get already existing comments from django database using {{ ... }} as above (if any) -->
+<!-- and display them here using a for loop when the button is clicked (using jquery) -->
+<!-- then when i post a new comment using jquery ajax, i will display it above (divided into two sections) -->
+	<p>{{article.comment}}</p>
+
+{% endblock %}
+
+{% block javascript %}
+<script>
+    $(".comment").click(function(){
+      $("#comment").toggle();
+    });
+
+    $(document).on('submit', "#commentForm", function(e){
+    	e.preventDefault();
+    	$.ajax({
+    		type: 'POST',
+    		url: '/comment/create/',
+    		data: { 
+                comment: $('#yourComment').val(), 
+                csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+            },
+    		success: function(data){
+    			var newestComment = document.getElementById("newestComment");
+    			// var stringComment = JSON.stringify(data);
+    			var jsonDate = "\""+data["created_date"]+"\"";
+    			var dateStr = JSON.parse(jsonDate);
+    			var date = new Date(dateStr);  
+    			newestComment.innerHTML += "<p>" + date + " - " + data["comment"] + "</p>";
+    			// console.log(data)
+    		}
+    	});
+    	return false;
+    });
+</script>
+<!-- $('#commentForm').trigger("reset"); to reset the form after submitting with ajax -->
+{% endblock %}
